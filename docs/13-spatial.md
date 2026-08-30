@@ -24,4 +24,4 @@ A polygon profile that treats rotations or reversed rings as equal must select t
 
 ## Spatial extensions
 
-For PostGIS or vector extensions, prefer an extension-owned sortable token when exact operator-class parity is required. Record extension version, operator class, coordinate system, dimensionality, NaN policy, and canonicalization rules in schema metadata.
+For spatial or vector extensions, prefer an extension-owned sortable token when exact operator-class parity is required. Record extension version, operator class, coordinate system, dimensionality, NaN policy, and canonicalization rules in schema metadata.
