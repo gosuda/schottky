@@ -426,9 +426,9 @@ The [public 3,072D nested-prefix embedding sample](https://huggingface.co/datase
 
 [The source model API supports 128–3,072 output dimensions and recommends 768, 1,536, or 3,072](https://ai.google.dev/gemini-api/docs/models/gemini-embedding-2-preview). The 16D and 32D measurements below intentionally test the lower-dimension hypothesis outside that supported range; they are diagnostics, not production model settings. The experiment sliced the stored 3,072D vectors and L2-normalized every prefix before cosine scoring. [API-produced truncated vectors from the source model are already normalized](https://ai.google.dev/gemini-api/docs/embeddings#quality-for-smaller-dimensions).
 
-### Direct prefix tuning
+### Dense prefix-scan tuning
 
-Each row scans the listed prefix across all 9,000 corpus vectors, retains the listed power-of-two candidate count, and performs exact 3,072D reranking only for those candidates.
+For each $(d, K)$ configuration, the experiment computes cosine similarity on the normalized $d$-dimensional prefix for every one of the 9,000 filtered corpus rows, retains the top-$K$ candidates, and reranks only those candidates with the full 3,072-dimensional vectors. Tuning means selecting $d$ and $K$ under explicit recall, scan, storage, and rerank constraints; it does not train the embedding.
 
 | Prefix dimensions | Full-vector rerank candidates | Corpus reranked | Prefix storage versus 3,072D | Relative multiply-adds | Recall@10 |
 | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -452,7 +452,7 @@ where $d$ is the prefix dimension, $N=9{,}000$ is the filtered corpus, and $K$ i
 
 ![Nested-prefix recall and resource tuning](assets/vector-ann-prefix-tuning.png)
 
-The result does not support using 16D or 32D as a narrow direct top-K search. Their direct top-10 Recall@10 values were only 5.26% and 12.54%. They exceed 90% only after sending 45.51% or 22.76% of the corpus to full-vector reranking. There is no single optimum in the 90–95% band: 128D with 256 candidates minimizes estimated multiply-adds; 1,536D with 10 candidates minimizes full-vector reranking but consumes half of a full-vector scan and adds 50% prefix storage. Under a prefix cap of 256D, 256D with 64 candidates has the smallest rerank share. For a target above 95%, the measured arithmetic choices are close: 128D with 512 candidates reached 96.86% recall at 9.86% relative multiply-adds, while 256D with 128 candidates reached 97.52% at 9.76%.
+The result does not support using 16D or 32D for a narrow prefix-only top-K search. Their prefix-only top-10 Recall@10 values were only 5.26% and 12.54%. They exceed 90% only after sending 45.51% or 22.76% of the corpus to full-vector reranking. There is no single optimum in the 90–95% band: 128D with 256 candidates minimizes estimated multiply-adds; 1,536D with 10 candidates minimizes full-vector reranking but consumes half of a full-vector scan and adds 50% prefix storage. Under a prefix cap of 256D, 256D with 64 candidates has the smallest rerank share. For a target above 95%, the measured arithmetic choices are close: 128D with 512 candidates reached 96.86% recall at 9.86% relative multiply-adds, while 256D with 128 candidates reached 97.52% at 9.76%.
 
 ### Scalar B-tree comparison
 
@@ -466,7 +466,7 @@ Nested-prefix selectivity comes from scoring the prefix as a vector. Re-projecti
 
 ![Nested-prefix and scalar-projection comparison](assets/vector-ann-prefix-methods.png)
 
-Use the direct prefix path when the storage engine or application can perform a dense prefix scan over the already-filtered partition. If only scalar B-tree access is available, `ProjectionProfile` can project `embedding[:d]`, but lower $d$ reduces projection computation rather than projection-row count or query fan-out. It does not reproduce direct-prefix candidate selectivity.
+Use the dense prefix-scan path when the storage engine or application can score every prefix in the already-filtered partition. If only scalar B-tree access is available, `ProjectionProfile` can project `embedding[:d]`, but lower $d$ reduces projection computation rather than projection-row count or query fan-out. Scalar projection does not reproduce dense prefix-scan candidate selectivity.
 
 ### Storage and query application
 
