@@ -140,6 +140,12 @@ func TestNetworkRejectsNonPortableValues(t *testing.T) {
 			},
 		},
 		{
+			name: "zoned mapped IPv4 address",
+			encode: func(builder *schottky.Builder) {
+				builder.IP(netip.MustParseAddr("::ffff:192.0.2.1%en0"), schottky.AscNullsFirst)
+			},
+		},
+		{
 			name: "mapped prefix outside IPv4 bits",
 			encode: func(builder *schottky.Builder) {
 				builder.NetworkPrefix(netip.MustParsePrefix("::ffff:192.0.2.1/80"), schottky.AscNullsFirst)

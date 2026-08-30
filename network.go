@@ -8,11 +8,11 @@ import (
 
 // IP appends an unzoned IP address, normalizing mapped IPv4 addresses.
 func (b *Builder) IP(value netip.Addr, order Order) {
-	value = value.Unmap()
 	if !value.IsValid() || value.Zone() != "" {
 		b.fail(ErrInvalidValue)
 		return
 	}
+	value = value.Unmap()
 	if value.Is4() {
 		address := value.As4()
 		b.networkBytes(4, address[:], 0, false, order)
