@@ -12,12 +12,13 @@ This map covers PostgreSQL 18 general-purpose types and common SQL or extension 
 | `boolean` | Boolean |
 | `bytea`, binary SQL types | binary bytes |
 | binary `text`, `varchar`, `char` | binary string after domain padding rules |
-| collated character types | external collation key, optional source tie-breaker |
-| `date`, `time`, `timestamp`, `timestamptz` | temporal scalar |
-| `timetz`, `interval` | adapter-selected comparison scalar or tuple |
+| collated character types | versioned collation profile; raw source-byte tie-break for deterministic equality |
+| `date`, `time`, `timestamp`, `timestamptz` | validated temporal scalar from the `2000-01-01` epoch |
+| `timetz` | `ZonedTime` |
+| `interval` | `Int128(IntervalOrderValue(...))` |
 | `uuid`, ULID | canonical 16 bytes |
-| `inet` | IP address |
-| `cidr` | canonical network prefix |
+| `inet` | `IP` or host-preserving `IPPrefix` |
+| `cidr` | canonical `NetworkPrefix` |
 | `macaddr`, `macaddr8` | canonical 6 or 8 bytes |
 | `bit`, `varbit` | packed bits and significant length |
 | enum | immutable unsigned rank |

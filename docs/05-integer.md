@@ -2,7 +2,7 @@
 
 ## Unsigned integers
 
-Encode the value in big-endian order at its declared width. Supported widths are 8, 16, 32, and 64 bits. Numeric order then equals unsigned bytewise order.
+Encode the value in big-endian order at its declared width. Supported unsigned widths are 8, 16, 32, and 64 bits. Numeric order then equals unsigned bytewise order.
 
 ## Signed integers
 
@@ -14,7 +14,7 @@ ordered = unsigned_bits(value) XOR sign_mask
 
 This rotates two's-complement order so the minimum signed value starts at zero, zero starts at the sign mask, and the maximum value ends at all ones.
 
-Integer width is part of the schema. An `Int16` payload and an `Int64` payload are not interchangeable even when they represent the same number.
+Integer width is part of the schema. Signed encoders support 8, 16, 32, 64, and 128 bits; `Int128` uses `{High int64, Low uint64}` two's-complement limbs. Encodings at different widths are not interchangeable even when they represent the same number.
 
 ## Descending order
 

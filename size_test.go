@@ -2,6 +2,7 @@ package schottky_test
 
 import (
 	"errors"
+	"net/netip"
 	"testing"
 
 	"gosuda.org/schottky"
@@ -56,5 +57,43 @@ func TestMaxEncodedBinarySize(t *testing.T) {
 func TestEncodedDecimalSizeRejectsInvalidValue(t *testing.T) {
 	if _, err := schottky.EncodedDecimalSize("1e"); !errors.Is(err, schottky.ErrInvalidValue) {
 		t.Fatalf("EncodedDecimalSize() error = %v, want ErrInvalidValue", err)
+	}
+}
+
+func TestEncodedNetworkSizesMatchBuilder(t *testing.T) {
+	address := netip.MustParseAddr("::ffff:192.0.2.1")
+	addressSize, err := schottky.EncodedIPSize(address)
+	if err != nil {
+		t.Fatalf("EncodedIPSize() error = %v", err)
+	}
+	addressKey := buildKey(t, func(builder *schottky.Builder) {
+		builder.IP(address, schottky.DescNullsLast)
+	})
+	if addressSize != len(addressKey) {
+		t.Fatalf("EncodedIPSize() = %d, encoded length = %d", addressSize, len(addressKey))
+	}
+
+	ipPrefix := netip.MustParsePrefix("192.0.2.129/24")
+	ipPrefixSize, err := schottky.EncodedIPPrefixSize(ipPrefix)
+	if err != nil {
+		t.Fatalf("EncodedIPPrefixSize() error = %v", err)
+	}
+	ipPrefixKey := buildKey(t, func(builder *schottky.Builder) {
+		builder.IPPrefix(ipPrefix, schottky.AscNullsFirst)
+	})
+	if ipPrefixSize != len(ipPrefixKey) {
+		t.Fatalf("EncodedIPPrefixSize() = %d, encoded length = %d", ipPrefixSize, len(ipPrefixKey))
+	}
+
+	network := ipPrefix.Masked()
+	networkSize, err := schottky.EncodedNetworkPrefixSize(network)
+	if err != nil {
+		t.Fatalf("EncodedNetworkPrefixSize() error = %v", err)
+	}
+	networkKey := buildKey(t, func(builder *schottky.Builder) {
+		builder.NetworkPrefix(network, schottky.AscNullsFirst)
+	})
+	if networkSize != len(networkKey) {
+		t.Fatalf("EncodedNetworkPrefixSize() = %d, encoded length = %d", networkSize, len(networkKey))
 	}
 }

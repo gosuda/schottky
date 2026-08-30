@@ -8,25 +8,29 @@ Nested component direction is part of the nested schema. Apply outer descending 
 
 ## Arrays
 
-A one-dimensional array with element-wise lexicographic order uses this nested layout:
+Build two caller-owned nested keys:
 
 ```text
-(element_0, element_1, ..., element_n)
+elements = (element_0, element_1, ..., element_n)
+array = (Tuple(elements), element_count, rank, dimensions..., lower_bounds...)
 ```
 
-Each element is a normal field and can be null. A shorter array sorts before an otherwise equal array that extends it because its nested key is a proper prefix.
+Encode elements in row-major order. An element uses its normal ascending profile with `AscNullsLast`, so a null element sorts after every non-null element. The nested element tuple makes a shorter equal-prefix element sequence sort first before metadata is considered.
 
-For multidimensional SQL arrays, prepend dimensions and lower bounds when they participate in equality or ordering:
+After equal elements, compare signed `Int32` metadata in this order:
 
-```text
-(rank, length_0, lower_0, ..., elements in row-major order)
-```
+1. element count;
+2. rank;
+3. dimension lengths in dimension order;
+4. lower bounds in dimension order.
 
-Use fixed unsigned widths for rank and lengths. Validate that the element count matches the dimensions.
+Validate that the product of non-negative dimension lengths equals the element count and that every array uses the same element profile. Rank, dimensions, and lower bounds may be omitted only when the index schema guarantees they are identical for every compared array.
 
 ## Records and composite SQL types
 
-Encode attributes in schema order. Attribute names are schema metadata and do not enter the key. Schema evolution that inserts, removes, reorders, or changes an attribute profile requires a new key-schema version.
+Encode attributes in schema order inside one nested key. Each attribute uses its normal ascending profile with `AscNullsLast`; a null attribute sorts after every non-null attribute. Apply descending order only to the outer `Tuple` field.
+
+Attribute names and named record identities do not enter the key. Reject differing logical arity or attribute profiles before encoding. Schema evolution that inserts, removes, reorders, or changes an attribute profile requires a new key-schema version.
 
 ## Sets and maps
 

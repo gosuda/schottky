@@ -6,6 +6,12 @@ import (
 	"gosuda.org/schottky/internal/byteops"
 )
 
+// Int128 stores a signed two's-complement 128-bit integer.
+type Int128 struct {
+	High int64
+	Low  uint64
+}
+
 // Bool appends a Boolean field.
 func (b *Builder) Bool(value bool, order Order) {
 	payload, ok := b.begin(order, 1)
@@ -34,6 +40,27 @@ func (b *Builder) Int32(value int32, order Order) {
 
 func (b *Builder) Int64(value int64, order Order) {
 	b.orderedUint(uint64(value)^0x8000000000000000, 8, order)
+}
+
+// Int128 appends a signed 128-bit integer.
+func (b *Builder) Int128(value Int128, order Order) {
+	payload, ok := b.begin(order, 16)
+	if !ok {
+		return
+	}
+	high := uint64(value.High) ^ 0x8000000000000000
+	for i := 7; i >= 0; i-- {
+		payload[i] = byte(high)
+		high >>= 8
+	}
+	low := value.Low
+	for i := 15; i >= 8; i-- {
+		payload[i] = byte(low)
+		low >>= 8
+	}
+	if order.descending() {
+		byteops.Invert(payload)
+	}
 }
 
 func (b *Builder) Uint8(value uint8, order Order) {
@@ -142,6 +169,23 @@ func (d *Decoder) Int64(order Order) (int64, Presence) {
 		return 0, presence
 	}
 	return int64(value ^ 0x8000000000000000), Present
+}
+
+func (d *Decoder) Int128(order Order) (Int128, Presence) {
+	var raw [16]byte
+	presence, ok := d.fixed(order, len(raw), raw[:])
+	if !ok || presence == Null {
+		return Int128{}, presence
+	}
+	var high uint64
+	for _, valueByte := range raw[:8] {
+		high = high<<8 | uint64(valueByte)
+	}
+	var low uint64
+	for _, valueByte := range raw[8:] {
+		low = low<<8 | uint64(valueByte)
+	}
+	return Int128{High: int64(high ^ 0x8000000000000000), Low: low}, Present
 }
 
 func (d *Decoder) Uint8(order Order) (uint8, Presence) {

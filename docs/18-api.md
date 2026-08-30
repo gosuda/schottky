@@ -17,7 +17,7 @@ key, err := b.Key()
 
 ## Capacity planning
 
-Fixed-size constants include the one-byte presence tag. `EncodedBytesSize`, `EncodedStringSize`, and `EncodedDecimalSize` return exact field sizes. `MaxEncodedBinarySize` returns the zero-scan upper bound $2n+3$.
+Fixed-size constants include the one-byte presence tag. `EncodedBytesSize`, `EncodedStringSize`, `EncodedDecimalSize`, and the network size functions return exact field sizes. `MaxEncodedBinarySize` and the maximum network constants provide zero-scan upper bounds.
 
 Size functions do not allocate. A builder still checks capacity so stale or untrusted size calculations cannot write beyond the supplied buffer.
 
@@ -44,7 +44,8 @@ The root package exposes semantic methods where their representation and validat
 
 - binary string, bytes, collation key, and nested tuple;
 - Boolean, signed and unsigned integers, floats, and decimal text;
-- date, time, timestamp, duration, enum rank, LSN, UUID, MAC, IP, and network prefix.
+- date, time, zoned time, timestamp, duration, enum rank, LSN, UUID, MAC, IP, IP prefix, and canonical network prefix;
+- signed `Int128` values and exact calendar-interval comparison scalars.
 
 Collections and policy-heavy database types are assembled from nested tuples. The `internal` tree contains escaping and byte transforms; callers depend only on the root package.
 

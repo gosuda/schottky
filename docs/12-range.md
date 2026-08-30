@@ -2,25 +2,34 @@
 
 ## Canonical range
 
-Canonicalize bounds with the same rules as the owning SQL range type before encoding. Discrete ranges should normally use the database's canonical form, such as converting equivalent inclusive and exclusive integer bounds to one representation.
+Canonicalize bounds with the owning range subtype before encoding. A discrete subtype must convert equivalent representations to one canonical form. Empty sorts before every non-empty range.
 
-Build a range as a nested tuple:
+Build each non-empty range from three nested keys:
 
 ```text
-(class, lower_kind, lower_value?, upper_kind, upper_value?)
+lower = (kind, Tuple(value)?, inclusion?)
+upper = (kind, Tuple(value)?, inclusion?)
+range = (class, Tuple(lower)?, Tuple(upper)?)
 ```
 
-Recommended ranks are:
+Use these unsigned ranks:
 
-| Component | Rank order |
-| --- | --- |
-| class | empty, non-empty |
-| lower kind | negative infinity, inclusive, exclusive |
-| upper kind | exclusive, inclusive, positive infinity |
+| Component | Rank |
+| --- | ---: |
+| empty class | `0` |
+| non-empty class | `1` |
+| unbounded lower kind | `0` |
+| finite lower kind | `1` |
+| finite upper kind | `0` |
+| unbounded upper kind | `1` |
+| inclusive finite lower | `0` |
+| exclusive finite lower | `1` |
+| exclusive finite upper | `0` |
+| inclusive finite upper | `1` |
 
-Encode finite bounds with the element profile. Embed the nested key with `Builder.Tuple`.
+For a finite bound, encode the element value before its inclusion rank. The subtype value uses its ascending profile and cannot be null. This produces `negative infinity < finite < positive infinity`; at the same finite value, an inclusive lower precedes an exclusive lower, while an exclusive upper precedes an inclusive upper.
 
-The rank table defines Schottky range order. If exact parity with a database range comparator is required, use that comparator's rank and canonicalization rules.
+Apply descending order only to the outer range `Tuple`. Bounds inside the range remain ascending.
 
 ## Multirange
 

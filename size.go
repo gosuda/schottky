@@ -2,31 +2,37 @@ package schottky
 
 // Fixed field sizes include the presence tag.
 const (
-	NullSize       = 1
-	BoolSize       = 2
-	Int8Size       = 2
-	Int16Size      = 3
-	Int32Size      = 5
-	Int64Size      = 9
-	Uint8Size      = 2
-	Uint16Size     = 3
-	Uint32Size     = 5
-	Uint64Size     = 9
-	Float32Size    = 5
-	Float64Size    = 9
-	DateSize       = Int32Size
-	TimeSize       = Int64Size
-	TimestampSize  = Int64Size
-	DurationSize   = Int64Size
-	EnumSize       = Uint32Size
-	LSNSize        = Uint64Size
-	UUIDSize       = 17
-	MAC48Size      = 7
-	MAC64Size      = 9
-	IPv4Size       = 6
-	IPv6Size       = 18
-	IPv4PrefixSize = 7
-	IPv6PrefixSize = 19
+	NullSize      = 1
+	BoolSize      = 2
+	Int8Size      = 2
+	Int16Size     = 3
+	Int32Size     = 5
+	Int64Size     = 9
+	Int128Size    = 17
+	Uint8Size     = 2
+	Uint16Size    = 3
+	Uint32Size    = 5
+	Uint64Size    = 9
+	Float32Size   = 5
+	Float64Size   = 9
+	DateSize      = Int32Size
+	TimeSize      = Int64Size
+	ZonedTimeSize = 13
+	TimestampSize = Int64Size
+	DurationSize  = Int64Size
+	EnumSize      = Uint32Size
+	LSNSize       = Uint64Size
+	UUIDSize      = 17
+	MAC48Size     = 7
+	MAC64Size     = 9
+)
+
+// Maximum network field sizes include the presence tag.
+const (
+	MaxIPv4Size       = 17
+	MaxIPv6Size       = 53
+	MaxIPv4PrefixSize = MaxIPv4Size
+	MaxIPv6PrefixSize = MaxIPv6Size
 )
 
 // EncodedBytesSize returns the exact field size for value, including presence.

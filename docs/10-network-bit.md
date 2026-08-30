@@ -1,27 +1,21 @@
 # Network and bit values
 
-## IP address
+## IP address and prefix
 
-Normalize IPv4-mapped IPv6 addresses to IPv4 unless the schema explicitly distinguishes them. Reject IPv6 zone identifiers because a zone is interface-local and not part of a portable address value.
+Reject IPv6 zone identifiers. Preserve IPv4-mapped IPv6 values as IPv6; address family is part of ordering and equality.
 
-The ascending payload is:
+`IP` behaves as a full-width `IPPrefix`: `/32` for IPv4 and `/128` for IPv6. `IPPrefix` preserves host bits. `NetworkPrefix` requires a canonical prefix with all host bits cleared and rejects rather than masks a non-canonical value.
 
-```text
-family | address
-```
+Ascending comparison is:
 
-| Family | Byte | Address bytes |
-| --- | ---: | ---: |
-| IPv4 | `04` | 4 |
-| IPv6 | `06` | 16 |
+1. family, with IPv4 before IPv6;
+2. address bits through the shorter prefix length;
+3. prefix length;
+4. every address bit, including host bits.
 
-This orders IPv4 before IPv6, then orders addresses as unsigned network-order integers.
+The payload uses a family byte, an escaped packed network-bit prefix, the prefix length, and the complete address. The escaped prefix makes a shorter equal bit prefix sort before an extension without expanding each source bit.
 
-## Network prefix
-
-Canonicalize a prefix by clearing host bits. Encode `family | network-address | prefix-length`. The profile orders canonical network addresses first and more-specific lengths second when addresses are equal.
-
-This is a stable Schottky order, not an assertion that every database uses the same `inet` or `cidr` comparator. An adapter requiring exact database index parity must normalize to that database's comparison tuple before encoding.
+`EncodedIPSize`, `EncodedIPPrefixSize`, and `EncodedNetworkPrefixSize` return exact field sizes. Network encodings are variable-width because zero bytes in the packed prefix are escaped. `MaxIPv4Size` and `MaxIPv6Size` include the presence tag and worst-case escaping.
 
 ## Bit strings
 

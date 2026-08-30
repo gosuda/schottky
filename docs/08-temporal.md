@@ -6,36 +6,41 @@ Temporal payloads use the signed integer transform at the stated width:
 
 | Domain | Canonical scalar |
 | --- | --- |
-| `date` | signed days since 1970-01-01, `int32` |
-| `time` | microseconds since 00:00:00, `int64` |
-| `timestamp` | microseconds since 1970-01-01 00:00:00 in the schema's civil calendar, `int64` |
-| `timestamptz` | microseconds since the Unix epoch in UTC, `int64` |
+| date | signed days since `2000-01-01`, `int32` |
+| time | microseconds since `00:00:00`, `int64` |
+| timestamp without zone | microseconds since `2000-01-01 00:00:00`, `int64` |
+| timestamp instant | microseconds since `2000-01-01 00:00:00 UTC`, `int64` |
 | elapsed duration | signed microseconds, `int64` |
 
-Microseconds cover PostgreSQL 18 precision and its timestamp range. The epoch choice does not affect order if subtraction cannot overflow the declared representation.
+`DateNegativeInfinity`, `DatePositiveInfinity`, `TimestampNegativeInfinity`, and `TimestampPositiveInfinity` are the ordered infinity sentinels. The finite date domain is `[-2_451_545, 2_145_031_949)`. The finite timestamp domain is `[-211_813_488_000_000_000, 9_223_371_331_200_000_000)`.
 
 ## Validation
 
-- Time-of-day is in `[0, 86_400_000_000)`.
+- Time-of-day is in `[0, 86_400_000_000]`; the inclusive endpoint represents `24:00:00`.
 - Leap seconds must follow one schema-wide normalization rule.
 - Civil timestamps must use one calendar and gap/overlap policy.
 - Zoned instants must be converted to UTC before encoding.
 - Monotonic-clock metadata is never persisted.
 
-## Time with time zone
+## Time with numeric offset
 
-Normalize `timetz` to the database's comparison scalar before encoding. Preserve an original offset only as a later tie-breaker when the database distinguishes equal instants by offset.
+`ZonedTime` stores local microseconds and a UTC offset in seconds measured eastward. It accepts offsets through `±15:59:59` and compares:
+
+```text
+(local_microseconds - east_offset_seconds * 1_000_000,
+ -east_offset_seconds)
+```
+
+The primary value is not reduced modulo one day. The second component distinguishes equal UTC-equivalent values by their original numeric offset.
 
 ## Calendar intervals
 
-Months, days, and microseconds do not have a database-independent total duration. Choose one profile per index:
+`IntervalOrderValue(months, days, microseconds)` computes an exact signed `Int128` scalar:
 
-- **elapsed:** convert to signed microseconds with an explicit overflow policy;
-- **calendar tuple:** encode `(months, days, microseconds)` as three signed fields;
-- **database comparator:** compute the database's canonical comparison scalar and encode that scalar.
+```text
+microseconds + 86_400_000_000 * (days + 30 * months)
+```
 
-The profile is schema metadata. Mixing profiles produces invalid ordering.
+Encode the result with `Builder.Int128`. Distinct component triples can compare equal; one month and thirty days intentionally produce the same key. Use `Duration` instead when the domain is already an elapsed-microsecond scalar.
 
-## Infinity
-
-Databases that support temporal infinities should prepend a class field: `0` for negative infinity, `1` for finite, `2` for positive infinity. The finite scalar follows only for class `1`.
+The all-minimum and all-maximum interval triples map to the two `Int128` extrema. Mixing interval comparison profiles in one keyspace is invalid.

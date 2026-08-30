@@ -24,6 +24,29 @@ func TestInt64Ordering(t *testing.T) {
 	assertDecreasingValues(t, descending)
 }
 
+func TestInt128OrderingAndRoundTrip(t *testing.T) {
+	values := []schottky.Int128{
+		{High: math.MinInt64},
+		{High: -1, Low: math.MaxUint64},
+		{},
+		{Low: 1},
+		{High: math.MaxInt64, Low: math.MaxUint64},
+	}
+	keys := make([][]byte, 0, len(values))
+	for _, value := range values {
+		keys = append(keys, buildKey(t, func(builder *schottky.Builder) {
+			builder.Int128(value, schottky.AscNullsFirst)
+		}))
+	}
+	assertIncreasing(t, keys)
+
+	decoder := schottky.NewDecoder(keys[1])
+	decoded, presence := decoder.Int128(schottky.AscNullsFirst)
+	if decoded != values[1] || presence != schottky.Present || decoder.Err() != nil {
+		t.Fatalf("Int128() = (%v, %v, %v), want (%v, Present, nil)", decoded, presence, decoder.Err(), values[1])
+	}
+}
+
 func TestIntegerWidthsRoundTrip(t *testing.T) {
 	key := buildKey(t, func(builder *schottky.Builder) {
 		builder.Int8(math.MinInt8, schottky.AscNullsFirst)
