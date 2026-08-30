@@ -40,6 +40,16 @@ A value outside this set produces `ErrInvalidOrder`.
 
 Persist both `UnicodeCollationVersion` and `CollationProfileVersion` with generated collation keys. Either changing invalidates stored keys.
 
+## Vector projection profiles
+
+`NewGaussianProjectionProfile` creates training-free Gaussian axes. `TrainPCA` fits centered principal-component axes to a caller-supplied sample matrix. Both return an immutable `ProjectionProfile` that is safe for concurrent projection calls.
+
+`ProjectionProfile.Project` appends Float32 scalar projections to caller-owned capacity and does not grow it. Invalid dimensions, non-finite values, and zero vectors under `VectorL2` return `ErrInvalidValue`; insufficient destination capacity returns `ErrShortBuffer`.
+
+`MarshalBinary` and `ParseProjectionProfile` persist the exact normalization, mean, and axes. `Fingerprint` returns the SHA-256 digest of those canonical bytes. Persist the profile bytes rather than regenerating axes from a seed.
+
+Projection fields are candidate-search metadata. Store the original vector and perform exact-distance reranking before returning neighbors. The [vector ANN guide](21-vector-ann.md) defines the schema, training lifecycle, query templates, and measured operating points.
+
 ## Decoder lifecycle
 
 A decoder consumes fields in schema order. Fixed-width methods return typed values. `Decoder.Bytes` writes an unescaped value into caller-owned capacity. Null is reported as `Null`; malformed, truncated, or non-canonical input records a sticky error.

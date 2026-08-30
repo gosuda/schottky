@@ -32,6 +32,7 @@ This map covers general-purpose SQL types and common application or extension do
 | log sequence number | unsigned 64-bit scalar |
 | transaction snapshot | canonical nested snapshot tuple |
 | object identifiers and catalog aliases | declared unsigned identifier profile |
-| vectors, GIS, extension types | operator-class token or explicit nested tuple |
+| numeric vectors | original vector plus versioned [PCA or Gaussian projection profile](21-vector-ann.md) and exact rerank |
+| GIS and other extension types | operator-class token or explicit nested tuple |
 
 Not every native database comparator is portable or documented as a wire contract. For exact index parity, test the adapter against database `ORDER BY`, equality, null, special-value, and collation behavior before persisting keys.
