@@ -15,6 +15,12 @@ key, err := b.Key()
 
 `Len` records a safe field boundary only when called between field operations. `Key` returns the borrowed slice and sticky error. The returned key aliases the supplied storage.
 
+## Capacity planning
+
+Fixed-size constants include the one-byte presence tag. `EncodedBytesSize`, `EncodedStringSize`, and `EncodedDecimalSize` return exact field sizes. `MaxEncodedBinarySize` returns the zero-scan upper bound $2n+3$.
+
+Size functions do not allocate. A builder still checks capacity so stale or untrusted size calculations cannot write beyond the supplied buffer.
+
 ## Ordering constants
 
 The four closed `Order` values combine value direction and null placement:

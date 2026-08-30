@@ -5,11 +5,9 @@
 The decimal profile accepts canonical or non-canonical decimal text and emits one representation per numeric value. Supported syntax is:
 
 ```text
-[+-]? digits [ . digits ] [ e [+-]? digits ]
-[+-]? . digits [ e [+-]? digits ]
-Infinity
--Infinity
-NaN
+[+-]? ( digits [ . [ digits ] ] | . digits ) [ e [+-]? digits ]
+[+-]? Infinity
+[+-]? NaN
 ```
 
 At least one digit is required. Leading and trailing coefficient zeros, a leading plus, exponent spelling, and negative zero do not affect the key. The adjusted base-10 exponent must fit `int32` after normalization.
