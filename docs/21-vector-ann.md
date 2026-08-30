@@ -377,13 +377,41 @@ For the last configuration, threshold 15 reduced candidates to 45.3% but also re
 
 ## Benchmark figures
 
-![Candidate coverage after scalar projection retrieval](assets/vector-ann-recall-candidates.png)
+The figures follow the decision sequence: compare strategies, inspect the 90–95% operating region, tune the trained profile, tune the training-free profile, then choose a collision threshold.
 
-The collision curve reports exact-rerank candidates, not index-read cost. Collision profiles read every configured per-projection hit before filtering.
+### Strategy overview
 
-![Training-free Gaussian OR parameter sweep](assets/vector-ann-qalsh-tuning.png)
+![Full-range candidate recall by projection strategy](assets/vector-ann-recall-candidates.png)
 
-The white contour is 90% Recall@10; the dark contour is 95%. The source rows for both figures are in [`vector-ann-benchmark.csv`](assets/vector-ann-benchmark.csv).
+The overview uses Pareto frontiers without a marker at every measurement. The dashed rectangle identifies the region expanded below, avoiding unreadable point clusters near the top of the full-range chart.
+
+### Target operating region and index work
+
+![Candidate selectivity and scalar index work in the target recall region](assets/vector-ann-operating-region.png)
+
+The left panel expands Recall@10 from 88% to 97% and labels the measured operating points. The right panel places the same points on a logarithmic scalar-hit axis. Marker area increases with the number of exact-rerank candidates.
+
+Scalar hits assume application-managed lower/upper cursor merging. Static SQL that materializes `K` rows from both directions may read up to twice the displayed count.
+
+### Trained PCA LIMIT tuning
+
+![One-axis PCA full and target-region LIMIT sweeps](assets/vector-ann-pca-tuning.png)
+
+The left panel retains the complete response curve. The right panel isolates the 90–95% band and labels the exact `K` values, including the first measured point above 95%.
+
+### Training-free Gaussian OR tuning
+
+![Training-free Gaussian OR Recall@10 matrix](assets/vector-ann-qalsh-tuning.png)
+
+Every cell prints measured Recall@10 for one projection-count and per-index `LIMIT` pair. Purple outlines identify cells in the 90–95% band. Values above 95% remain visible but are not presented as the lower-cost target region.
+
+### Collision-threshold tuning
+
+![Recall and rerank volume by Gaussian collision threshold](assets/vector-ann-collision-threshold.png)
+
+The top row isolates Recall@10 from 80% to 100%; the bottom row shows the corresponding exact-rerank fraction. Increasing the threshold reduces both quantities. The annotations mark the last measured threshold above 90% for each displayed profile.
+
+The collision curves report exact-rerank candidates, not index-read cost. Every configured per-projection hit is read before collision filtering. Source rows for all figures are in [`vector-ann-benchmark.csv`](assets/vector-ann-benchmark.csv).
 
 ### Reproducibility metadata
 
