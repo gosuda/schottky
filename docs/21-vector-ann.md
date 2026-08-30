@@ -44,12 +44,13 @@ PCA profiles contain one dimension-length mean. Gaussian profiles contain no mea
 
 | Requirement | Profile | Initial configuration | Limitation |
 | --- | --- | --- | --- |
+| Matryoshka model and dense prefix scoring | normalized prefix scan plus full rerank | 128D prefix, rerank about 2.9% | requires a vector scan outside scalar B-tree retrieval |
 | no fitting or corpus scan | Gaussian multi-projection | 16 projections for write-sensitive partitions | measured 90% recall required reranking most of the corpus |
 | stable corpus and lower read amplification | trained PCA | one projection | profile rebuild required after material distribution drift |
-| read-heavy analytical partition without training | Gaussian collisions | 64–128 projections | large projection table and query fan-out |
+| optional filtering on a fixed Gaussian profile | collision threshold | tune after projection count and `LIMIT` | large projection table and query fan-out |
 | small filtered partition | exact scan | no projection profile | cost grows linearly with filtered row count |
 
-PCA was the most selective measured B-tree prefilter. Gaussian projections remain the recommended **training-free storage format**, not the default query plan when training is allowed.
+The Matryoshka prefix scan was the most selective measured candidate path, but it requires dense vector scoring. Among scalar B-tree prefilters, PCA was the most selective. Gaussian projections remain the recommended **training-free storage format**, not the default query plan when training or prefix scanning is available.
 
 ## Go profile lifecycle
 
@@ -358,26 +359,28 @@ These fractions are initial values for similar distributions, not portable guara
 
 | Projection indexes | Scalar neighbors per projection | Scalar hits consumed by two-cursor merge | Mean candidates | Corpus reranked | Recall@10 |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 16 | 1,000 | 16,000 | 7,623 | 84.7% | 93.32% |
-| 28 | 500 | 14,000 | 7,175 | 79.7% | 90.28% |
-| 60 | 250 | 15,000 | 7,329 | 81.4% | 91.54% |
-| 140 | 100 | 14,000 | 7,107 | 79.0% | 90.12% |
+| 16 | 1,024 | 16,384 | 7,688 | 85.42% | 93.98% |
+| 32 | 512 | 16,384 | 7,609 | 84.55% | 93.74% |
+| 64 | 256 | 16,384 | 7,569 | 84.10% | 93.22% |
+| 128 | 128 | 16,384 | 7,549 | 83.88% | 93.40% |
+| 256 | 64 | 16,384 | 7,540 | 83.78% | 93.38% |
 
-Static two-sided SQL may read up to twice the listed scalar-hit count. More projections did not remove the need to rerank most rows.
+Static two-sided SQL may read up to twice the listed scalar-hit count. All five profiles consume the same number of scalar hits. The 16-projection profile is the recommended balanced point: compared with 256 projections, it writes sixteen times fewer projection rows while increasing the exact-rerank share by only 1.64 percentage points.
 
-### Gaussian collision filtering
+### Optional Gaussian collision filtering
 
 | Projection indexes | Neighbors per projection | Minimum collisions | Scalar hits consumed by two-cursor merge | Mean candidates | Corpus reranked | Recall@10 |
 | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 64 | 1,000 | 6 | 64,000 | 6,517 | 72.4% | 94.68% |
-| 128 | 500 | 6 | 64,000 | 6,446 | 71.6% | 94.22% |
-| 128 | 1,000 | 14 | 128,000 | 5,055 | 56.2% | 93.36% |
+| 64 | 1,024 | 6 | 65,536 | 6,714 | 74.60% | 95.00% |
+| 128 | 512 | 6 | 65,536 | 6,632 | 73.69% | 94.14% |
+| 128 | 1,024 | 14 | 131,072 | 5,382 | 59.80% | 94.98% |
+| 128 | 1,024 | 15 | 131,072 | 4,413 | 49.04% | 91.46% |
 
-For the last configuration, threshold 15 reduced candidates to 45.3% but also reduced Recall@10 to 89.30%. Collision filtering improves candidate selectivity at the cost of substantially more index reads and storage.
+At 128 projections and `LIMIT 1,024`, threshold 16 reduced the exact-rerank share to 38.5% but also reduced Recall@10 to 86.42%. Collision filtering improves candidate selectivity at the cost of substantially more index reads and storage. Collision count is not a primary ANN quality metric: use Recall@K, exact-rerank share, scalar hits, and projection-row amplification for profile selection. Treat the threshold only as an internal filter after projection count and per-index `LIMIT` are fixed.
 
 ## Benchmark figures
 
-The figures follow the decision sequence: compare strategies, inspect the 90–95% operating region, tune the trained profile, tune the training-free profile, then choose a collision threshold.
+The figures follow the decision sequence: compare strategies, inspect the 90–95% operating region, tune the trained profile, tune the training-free profile, then inspect collision filtering only when that optional query path is enabled.
 
 ### Strategy overview
 
@@ -389,7 +392,7 @@ The overview uses Pareto frontiers without a marker at every measurement. The da
 
 ![Candidate selectivity and scalar index work in the target recall region](assets/vector-ann-operating-region.png)
 
-The left panel expands Recall@10 from 88% to 97% and labels the measured operating points. The right panel places the same points on a logarithmic scalar-hit axis. Marker area increases with the number of exact-rerank candidates.
+The left panel expands Recall@10 from 88% to 97% and labels the measured operating points. The right panel places the same points on a logarithmic scalar-hit axis. Marker area increases with the number of vectors sent to exact kNN reranking. The orange star marks the lowest measured candidate and scalar-hit cost in the target band: trained PCA with one axis and `K=4,250`.
 
 Scalar hits assume application-managed lower/upper cursor merging. Static SQL that materializes `K` rows from both directions may read up to twice the displayed count.
 
@@ -403,17 +406,92 @@ The left panel retains the complete response curve. The right panel isolates the
 
 ![Training-free Gaussian OR Recall@10 matrix](assets/vector-ann-qalsh-tuning.png)
 
-Every cell prints measured Recall@10 for one projection-count and per-index `LIMIT` pair. Purple outlines identify cells in the 90–95% band. Values above 95% remain visible but are not presented as the lower-cost target region.
+The left matrix prints measured Recall@10. The right matrix prints the mean percentage of corpus vectors that proceed to exact kNN reranking. Purple outlines identify 90–95% Recall@10 cells in both panels. The orange star marks the recommended balanced training-free point: 16 projections with `LIMIT 1,024`.
 
-### Collision-threshold tuning
+The matrix includes 4, 8, 12, and 16 projections. With `LIMIT 1,024` per projection, their measured Recall@10 values were 51.30%, 75.36%, 87.38%, and 93.98%. Sixteen projections were the first tested count at or below 16 to enter the 90–95% target band.
 
-![Recall and rerank volume by Gaussian collision threshold](assets/vector-ann-collision-threshold.png)
+### Optional collision-filter diagnostic
+
+![Optional collision-filter recall and rerank tradeoff](assets/vector-ann-collision-threshold.png)
 
 The top row isolates Recall@10 from 80% to 100%; the bottom row shows the corresponding exact-rerank fraction. Increasing the threshold reduces both quantities. The annotations mark the last measured threshold above 90% for each displayed profile.
 
-The collision curves report exact-rerank candidates, not index-read cost. Every configured per-projection hit is read before collision filtering. Source rows for all figures are in [`vector-ann-benchmark.csv`](assets/vector-ann-benchmark.csv).
+Threshold values are not comparable across different projection counts or per-index limits. The curves diagnose one fixed profile; they are not an operational KPI. Every configured per-projection hit is read before collision filtering, so the threshold reduces exact reranking but not the preceding index reads.
 
-### Reproducibility metadata
+Source rows for all figures are in [`vector-ann-benchmark.csv`](assets/vector-ann-benchmark.csv).
+
+## Matryoshka prefix experiment
+
+The [Gemini Embedding 2 preview sample](https://huggingface.co/datasets/allura-forge/gemini-embedding-2-preview-embeddings) adds a materially different option: rank every row with a normalized prefix, then rerank that prefix candidate set with the full 3,072-dimensional vector. The model uses Matryoshka Representation Learning, so its prefixes retain more neighborhood structure than arbitrary truncation.
+
+[The model API supports 128–3,072 output dimensions and recommends 768, 1,536, or 3,072](https://ai.google.dev/gemini-api/docs/models/gemini-embedding-2-preview). The 16D and 32D measurements below intentionally test the lower-dimension hypothesis outside that supported range; they are diagnostics, not production model settings. The experiment sliced the stored 3,072D vectors and L2-normalized every prefix before cosine scoring. [API-produced truncated Gemini Embedding 2 vectors are already normalized](https://ai.google.dev/gemini-api/docs/embeddings#quality-for-smaller-dimensions).
+
+### Direct prefix tuning
+
+Each row scans the listed prefix across all 9,000 corpus vectors, retains the listed power-of-two candidate count, and performs exact 3,072D reranking only for those candidates.
+
+| Prefix dimensions | Full-vector rerank candidates | Corpus reranked | Prefix storage versus 3,072D | Relative multiply-adds | Recall@10 |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 16 | 4,096 | 45.51% | 0.52% | 46.03% | 91.44% |
+| 32 | 2,048 | 22.76% | 1.04% | 23.80% | 90.60% |
+| 64 | 1,024 | 11.38% | 2.08% | 13.46% | 93.18% |
+| **128** | **256** | **2.84%** | **4.17%** | **7.01%** | **93.54%** |
+| 256 | 64 | 0.71% | 8.33% | 9.04% | 93.82% |
+| 512 | 32 | 0.36% | 16.67% | 17.02% | 97.74% |
+| 768 | 16 | 0.18% | 25.00% | 25.18% | 98.46% |
+| 1,536 | 10 | 0.11% | 50.00% | 50.11% | 92.36% |
+
+The relative multiply-add estimate is:
+
+$$
+\frac{dN + 3{,}072K}{3{,}072N}
+= \frac{d}{3{,}072} + \frac{K}{N},
+$$
+
+where $d$ is the prefix dimension, $N=9{,}000$ is the filtered corpus, and $K$ is the full-vector rerank count. It excludes memory bandwidth, index traversal, and result materialization.
+
+![Matryoshka prefix recall and resource tuning](assets/vector-ann-matryoshka-tuning.png)
+
+The result does not support using 16D or 32D as a narrow direct top-K search. Their direct top-10 Recall@10 values were only 5.26% and 12.54%. They exceed 90% only after sending 45.51% or 22.76% of the corpus to full-vector reranking. The measured 90–95% arithmetic minimum is 128D with 256 candidates. The smallest exact-rerank share in that band is 256D with 64 candidates. For a target above 95%, the measured arithmetic choices are close: 128D with 512 candidates reached 96.86% recall at 9.86% relative multiply-adds, while 256D with 128 candidates reached 97.52% at 9.76%.
+
+### Scalar B-tree comparison
+
+Matryoshka selectivity comes from scoring the prefix as a vector. Re-projecting that prefix to one or more scalar B-tree keys discards most of the benefit:
+
+| Candidate path on 128D prefix | Projection indexes | Per-index `LIMIT` | Corpus reranked | Recall@10 |
+| --- | ---: | ---: | ---: | ---: |
+| normalized prefix scan | 0 | 256 total | 2.84% | 93.54% |
+| trained PCA | 1 | 4,096 | 45.51% | 93.62% |
+| Gaussian OR | 16 | 1,024 | 84.96% | 94.76% |
+
+![Matryoshka prefix and scalar-projection comparison](assets/vector-ann-matryoshka-methods.png)
+
+Use the direct prefix path when the storage engine or application can perform a dense prefix scan over the already-filtered partition. If only scalar B-tree access is available, `ProjectionProfile` can project `embedding[:d]`, but lower $d$ reduces projection computation rather than projection-row count or query fan-out. It does not reproduce direct-prefix candidate selectivity.
+
+### Storage and query application
+
+Store these values as one versioned embedding profile:
+
+| Value | Purpose |
+| --- | --- |
+| full 3,072D Float32 vector | exact final score and migration source |
+| normalized 128D or 256D prefix | first-stage dense scan without reading the full vector |
+| model, task format, full dimension, prefix dimension, normalization | prevents incompatible query and corpus vectors from mixing |
+| validated candidate fraction and corpus fingerprint | ties `K` to the measured post-filter distribution |
+
+Derive the prefix from the same full embedding, normalize it once, and store it separately. Computing the prefix from the full blob during a query defeats the read-bandwidth benefit. Query execution is:
+
+1. apply tenant and business predicates;
+2. L2-normalize `query[:d]` with the corpus profile's exact dimension;
+3. score the normalized prefix against every vector in the filtered partition;
+4. retain `K = ceil(candidate_fraction × partition_rows)`; use a fixed power-of-two bucket only when that exact bucket was validated;
+5. fetch the full vectors for those IDs and return exact cosine top-10.
+
+Start at 128D and a 2.9% candidate fraction for a measured target near 94%, or 256D and a 1.5% candidate fraction for a measured target above 95%. These are benchmark starting points, not portable guarantees. Revalidate after model, task-prefix, corpus, filter, or embedding-version changes.
+
+## Reproducibility metadata
+
+### Standard 1,536D projection sample
 
 | Property | Value |
 | --- | --- |
@@ -429,7 +507,25 @@ The collision curves report exact-rerank candidates, not index-read cost. Every 
 | PCA training | exact covariance eigendecomposition for the benchmark |
 | Gaussian retrieval | exact absolute scalar top-K before OR or collision filtering |
 
-The experiment measures candidate recall in memory. It does not measure storage-engine latency, buffer-cache behavior, transaction contention, or network round trips.
+### Matryoshka 3,072D sample
+
+| Property | Value |
+| --- | --- |
+| source | [`allura-forge/gemini-embedding-2-preview-embeddings`](https://huggingface.co/datasets/allura-forge/gemini-embedding-2-preview-embeddings) |
+| source rows | 10,000 across ten Parquet shards |
+| dimensions | 3,072 |
+| corpus rows | 9,000 |
+| held-out queries | 500 |
+| query count used in each mean | 500 |
+| exact result count | 10 |
+| split and projection seed | `20260830` |
+| Float32 subset artifact SHA-256 | `4817503e4377e91fae126171c2da7443f5efbaefb3fd68d455495d284e98a6d7` |
+| prefix dimensions | 8, 16, 32, 64, 128, 256, 512, 768, 1,536, 3,072 |
+| prefix preprocessing | slice full vector, cast to Float32, then L2-normalize |
+| candidate limits | 10, 16, 32, 64, 128, 256, 512, 1,024, 2,048, 4,096 |
+| exact ground truth | cosine top-10 on normalized 3,072D vectors |
+
+Both experiments measure candidate recall in memory. They do not measure storage-engine latency, buffer-cache behavior, transaction contention, network round trips, or production asymmetric query/document task formatting.
 
 ## OLTP operation
 
