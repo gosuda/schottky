@@ -64,7 +64,3 @@ A provider name alone is insufficient schema identity. Record provider, provider
 ## Caller-supplied tokens
 
 Keep JSON binary values, text-search vectors and queries, physical tuple identifiers, transaction identifiers with wraparound semantics, unknown extension operator classes, and catalog-state-dependent labels behind versioned caller-supplied canonical tokens. Their native comparators depend on private representation, database state, or a separate collation profile; presenting them as portable scalar encodings would be misleading.
-
-## Migration
-
-The network, date, timestamp, array, and range layouts in this profile differ from earlier Schottky documentation. Do not mix them in one ordered keyspace. Assign a new schema identifier and rebuild affected keys.
