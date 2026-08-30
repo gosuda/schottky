@@ -52,3 +52,46 @@ func TestCoreDecodingDoesNotAllocate(t *testing.T) {
 		t.Fatalf("decoding allocations = %v, want 0", allocations)
 	}
 }
+
+func TestCollationEncodingDoesNotAllocate(t *testing.T) {
+	tests := []struct {
+		name    string
+		profile schottky.CollationProfile
+		text    string
+	}{
+		{
+			name:    "root",
+			profile: schottky.CollationProfile{AccentSensitive: true, CaseSensitive: true},
+			text:    "Straße élan",
+		},
+		{
+			name: "tailored",
+			profile: schottky.CollationProfile{
+				Tailoring:       schottky.TailoringVietnamese,
+				AccentSensitive: true,
+				CaseSensitive:   true,
+			},
+			text: "Việt Nam",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			collator, err := schottky.NewCollator(test.profile)
+			if err != nil {
+				t.Fatalf("NewCollator() error = %v", err)
+			}
+			failed := false
+			allocations := testing.AllocsPerRun(1000, func() {
+				var storage [256]byte
+				_, keyErr := collator.Key(storage[:0], test.text)
+				failed = failed || keyErr != nil
+			})
+			if failed {
+				t.Fatal("collation encoding returned an error")
+			}
+			if allocations != 0 {
+				t.Fatalf("collation encoding allocations = %v, want 0", allocations)
+			}
+		})
+	}
+}

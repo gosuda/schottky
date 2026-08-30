@@ -32,6 +32,14 @@ The four closed `Order` values combine value direction and null placement:
 
 A value outside this set produces `ErrInvalidOrder`.
 
+## Collator lifecycle
+
+`NewCollator` validates a comparable `CollationProfile`. `KeySize` and `TotalKeySize` return exact caller-capacity requirements. `Key` preserves collation equality; `TotalKey` adds a raw UTF-8 tie-break.
+
+`Collator` contains only immutable profile metadata and is safe for concurrent use. Key methods do not retain source or destination storage and do not grow destination capacity.
+
+Persist both `UnicodeCollationVersion` and `CollationProfileVersion` with generated collation keys. Either changing invalidates stored keys.
+
 ## Decoder lifecycle
 
 A decoder consumes fields in schema order. Fixed-width methods return typed values. `Decoder.Bytes` writes an unescaped value into caller-owned capacity. Null is reported as `Null`; malformed, truncated, or non-canonical input records a sticky error.

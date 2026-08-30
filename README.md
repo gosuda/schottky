@@ -30,6 +30,6 @@ prefix := key[:accountPrefix]
 
 `Builder` never grows `storage`. Insufficient capacity returns `schottky.ErrShortBuffer` without partially appending a field.
 
-Start with the [key layout](docs/03-key-layout.md), [Go API](docs/18-api.md), [SQL type map](docs/17-sql-type-map.md), and [PostgreSQL 18 options](docs/19-postgresql-18.md).
+Start with the [key layout](docs/03-key-layout.md), [Go API](docs/18-api.md), [SQL type map](docs/17-sql-type-map.md), [PostgreSQL 18 options](docs/19-postgresql-18.md), and [utf8mb4 collation map](docs/20-utf8mb4-map.md).
 
 Enable the experimental SIMD path with `GOEXPERIMENT=simd` on Go 1.27. Scalar and SIMD builds emit identical keys.

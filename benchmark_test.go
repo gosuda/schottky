@@ -69,3 +69,56 @@ func BenchmarkCompositeDecode(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkCollationKey(b *testing.B) {
+	tests := []struct {
+		name    string
+		profile schottky.CollationProfile
+		value   string
+	}{
+		{
+			name:    "root",
+			profile: schottky.CollationProfile{AccentSensitive: true, CaseSensitive: true},
+			value:   "Straße élan",
+		},
+		{
+			name: "tailored",
+			profile: schottky.CollationProfile{
+				Tailoring:       schottky.TailoringVietnamese,
+				AccentSensitive: true,
+				CaseSensitive:   true,
+			},
+			value: "Việt Nam",
+		},
+		{
+			name:    "binary",
+			profile: schottky.CollationProfile{Algorithm: schottky.BinaryCollation},
+			value:   "Straße élan",
+		},
+		{
+			name: "simple-case",
+			profile: schottky.CollationProfile{
+				Algorithm:       schottky.SimpleCaseCollation,
+				Padding:         schottky.SpacePadding,
+				AccentSensitive: true,
+			},
+			value: "Straße élan",
+		},
+	}
+	for _, test := range tests {
+		b.Run(test.name, func(b *testing.B) {
+			collator, err := schottky.NewCollator(test.profile)
+			if err != nil {
+				b.Fatal(err)
+			}
+			var storage [256]byte
+			b.SetBytes(int64(len(test.value)))
+			b.ReportAllocs()
+			for range b.N {
+				if _, err := collator.Key(storage[:0], test.value); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
