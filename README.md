@@ -8,7 +8,7 @@ Schottky encodes typed values and composite tuples so unsigned bytewise key orde
 - Allocation-free hot path when capacity is sufficient
 - Independent ascending or descending order and null placement per field
 - Literal complete-field prefixes for prefix filters and range scans
-- Scalar, nested, and vector-projection profiles for modern SQL data
+- Scalar and nested encodings for modern SQL data
 - No third-party dependencies
 - Optional Go 1.27 portable SIMD byte transforms
 
@@ -30,6 +30,6 @@ prefix := key[:accountPrefix]
 
 `Builder` never grows `storage`. Insufficient capacity returns `schottky.ErrShortBuffer` without partially appending a field.
 
-Start with the [key layout](docs/03-key-layout.md), [Go API](docs/18-api.md), [SQL type map](docs/17-sql-type-map.md), [vector ANN profiles](docs/21-vector-ann.md), [format compatibility guide](docs/19-format-compatibility.md), and [utf8mb4 collation map](docs/20-utf8mb4-map.md).
+Start with the [key layout](docs/03-key-layout.md), [Go API](docs/18-api.md), [SQL type map](docs/17-sql-type-map.md), [format compatibility guide](docs/19-format-compatibility.md), and [utf8mb4 collation map](docs/20-utf8mb4-map.md).
 
 Enable the experimental SIMD path with `GOEXPERIMENT=simd` on Go 1.27. Scalar and SIMD builds emit identical keys.

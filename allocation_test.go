@@ -29,32 +29,6 @@ func TestCoreEncodingDoesNotAllocate(t *testing.T) {
 	}
 }
 
-func TestVectorProjectionDoesNotAllocate(t *testing.T) {
-	profile, err := schottky.NewProjectionProfile(
-		schottky.ProjectionGaussian,
-		schottky.VectorL2,
-		4,
-		nil,
-		[]float32{1, 0, 0, 0, 0, 1, 0, 0},
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	vector := []float32{1, 2, 3, 4}
-	failed := false
-	allocations := testing.AllocsPerRun(1000, func() {
-		var storage [2]float32
-		_, projectErr := profile.Project(storage[:0], vector)
-		failed = failed || projectErr != nil
-	})
-	if failed {
-		t.Fatal("vector projection returned an error")
-	}
-	if allocations != 0 {
-		t.Fatalf("vector projection allocations = %v, want 0", allocations)
-	}
-}
-
 func TestCoreDecodingDoesNotAllocate(t *testing.T) {
 	key := buildKey(t, func(builder *schottky.Builder) {
 		builder.Int64(-42, schottky.AscNullsLast)
