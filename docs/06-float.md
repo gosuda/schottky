@@ -9,7 +9,7 @@ The canonical profile follows database-oriented total ordering:
 - infinities retain IEEE order;
 - other values retain numeric order.
 
-This matches PostgreSQL's documented treatment of NaN and avoids distinct keys for values that SQL equality commonly treats as equal. A domain requiring IEEE `totalOrder` needs a separate profile.
+This matches the mapped database format's treatment of NaN and avoids distinct keys for values that SQL equality commonly treats as equal. A domain requiring IEEE `totalOrder` needs a separate profile.
 
 ## Ascending transform
 

@@ -12,11 +12,11 @@ Encode a canonical 16-byte binary value. Crockford Base32 aliases and case are p
 
 ## MAC addresses
 
-Encode `macaddr` as six bytes and `macaddr8` as eight bytes in display order. Width is part of the schema. EUI-48 and modified EUI-64 forms are not interchangeable unless the application canonicalizes them before encoding.
+Encode a 48-bit MAC address as six bytes and a 64-bit MAC address as eight bytes in display order. Width is part of the schema. EUI-48 and modified EUI-64 forms are not interchangeable unless the application canonicalizes them before encoding.
 
 ## Log and object identifiers
 
-- Encode `pg_lsn` as the unsigned 64-bit scalar `(high << 32) | low`.
+- Encode a log sequence number as the unsigned 64-bit scalar `(high << 32) | low`.
 - Encode OID-like values at their declared unsigned width.
 - Encode transaction snapshot structures as nested tuples only after selecting a stable canonical member order.
 

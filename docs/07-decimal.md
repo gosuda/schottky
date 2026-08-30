@@ -47,4 +47,4 @@ The field's descending direction complements the complete class-and-magnitude pa
 
 ## SQL mappings
 
-Use this profile for `numeric` and `decimal` when arbitrary precision and PostgreSQL-style special values are required. Fixed-scale `money` values are smaller and faster as signed minor-unit integers. A database with a different NaN or infinity order requires an explicit adapter profile.
+Use this profile for `numeric` and `decimal` when arbitrary precision and database-style special values are required. Fixed-scale monetary values are smaller and faster as signed minor-unit integers. A database with a different NaN or infinity order requires an explicit adapter profile.

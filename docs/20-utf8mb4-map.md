@@ -1,6 +1,6 @@
 # utf8mb4 collation mapping
 
-This integration map pins MariaDB Community Server `13.0.1-MariaDB-ubu2604`, the latest released innovation series used for the compatibility oracle. The public Go identifiers remain vendor-neutral.
+This integration map defines MariaDB Style for the supported utf8mb4 inventory. The public Go identifiers remain vendor-neutral.
 
 ## Scope
 
@@ -157,16 +157,8 @@ utf8mb4_vietnamese_ci
 
 Selecting one of these names is a configuration error; do not silently substitute a modern profile.
 
-## Oracle verification
-
-The clean-room overlay was measured through SQL comparison and `WEIGHT_STRING`; no implementation source or internal collation table was copied. Verification covered all 1,112,064 valid Unicode scalars for each of the 22 non-root tailorings, all 939 multi-scalar Unicode-14 DUCET inputs, 6,416 CLDR 40 rule operands, 2,677,802 profile-alphabet pairs, and 216,000 Hungarian triples.
-
-The result contains 502 single-scalar differences and 27 added two-scalar contractions. A separate source-metadata review confirmed that those 27 additions are the complete target contraction inventory: Croatian 9, Czech 3, Danish 3, Lithuanian 3, Slovak 3, and traditional Spanish 6. No existing DUCET multi-scalar mapping changes.
-
-All 529 overlay inputs also matched across their eight padding/sensitivity profiles. Root verification compared all three level streams for every valid scalar and all 939 DUCET multi-scalar inputs. The only target differences from literal public Unicode-14 data are the generic eight-collation-element scalar limit, which truncates U+FDFA, and a Tangut-special endpoint at U+18D7F. The simple-case profile matched Unicode-14 simple uppercase for every valid scalar.
-
 ## Key policy
 
 Use `Collator.Key` to preserve SQL collation equality. Use `Collator.TotalKey` only for a separate deterministic application order; the server itself does not add that raw-byte tie-break to these collations.
 
-Persist the target release, external name, resolved `CollationProfile`, `UnicodeCollationVersion`, `CollationProfileVersion`, and key policy. Rebuild keys when any value changes.
+Persist the style label, external name, resolved `CollationProfile`, `UnicodeCollationVersion`, `CollationProfileVersion`, and key policy. Rebuild keys when any value changes.

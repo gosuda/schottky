@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	expectedInputSHA256 = "59b1597578c8098a1791c288f743d083ce2a94b989918dee8a69780a3cd8dd1b"
+	expectedInputSHA256 = "6a01c1668b3a09f31ca613d0fdbf8a587d76a1bb6da349913566bc3350e8ff71"
 	mappingCountBits    = 5
 )
 

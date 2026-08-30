@@ -19,7 +19,7 @@ The payload uses a family byte, an escaped packed network-bit prefix, the prefix
 
 ## Bit strings
 
-For `bit(n)` and `varbit(n)`, clear unused low bits in the final byte. Build a nested tuple containing:
+For fixed or varying bit strings, clear unused low bits in the final byte. Build a nested tuple containing:
 
 1. packed bits as binary bytes;
 2. significant bit length as `Uint64`.

@@ -1,6 +1,6 @@
 # Document and search values
 
-## JSON and JSONB
+## JSON values
 
 Textual JSON has no canonical ordering. Choose one of these profiles:
 
@@ -16,7 +16,7 @@ Use canonical XML bytes from a named canonicalization version, or an application
 
 ## Full-text search
 
-`tsvector` and `tsquery` ordering depends on parser, dictionary, collation, weight, and normalization behavior. Use a database-produced token or a canonical nested tuple whose producer and configuration are versioned with the index.
+Native full-text vectors and queries depend on parser, dictionary, collation, weight, and normalization behavior. Use a database-produced token or a canonical nested tuple whose producer and configuration are versioned with the index.
 
 ## Transaction snapshots
 

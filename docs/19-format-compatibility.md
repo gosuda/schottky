@@ -1,6 +1,6 @@
-# PostgreSQL 18 compatibility
+# Format compatibility guide
 
-This mapping targets PostgreSQL 18 B-tree comparison. The Go API remains vendor-neutral; `pg18` is schema metadata, not a runtime mode.
+This guide maps PostgreSQL 18 B-tree comparison to the vendor-neutral Go API. Persist the target release as schema metadata; it is not a runtime mode.
 
 ## ORDER BY options
 
@@ -13,13 +13,13 @@ Use the `Order` value matching the complete SQL clause:
 | `DESC` or `DESC NULLS FIRST` | `DescNullsFirst` |
 | `DESC NULLS LAST` | `DescNullsLast` |
 
-PostgreSQL defaults nulls last for ascending order and nulls first for descending order. Do not infer null placement from direction in application code; store the selected `Order` in the key schema.
+The target defaults nulls last for ascending order and nulls first for descending order. Do not infer null placement from direction in application code; store the selected `Order` in the key schema.
 
 For a nested array, range, multirange, or record, build internal components in ascending comparator order and apply the SQL direction only to the outer `Tuple` field.
 
 ## Type options
 
-| PostgreSQL type | Required encoding |
+| External type | Required encoding |
 | --- | --- |
 | `boolean` | `Bool` |
 | `smallint`, `integer`, `bigint` | matching signed integer width |
@@ -43,7 +43,7 @@ For a nested array, range, multirange, or record, build internal components in a
 | array, record | nested layout from [structured values](11-structured.md) |
 | range, multirange | nested layout from [range values](12-range.md) |
 
-`DateNegativeInfinity`, `DatePositiveInfinity`, `TimestampNegativeInfinity`, and `TimestampPositiveInfinity` map the native temporal infinities. The finite domain checks reject scalar values PostgreSQL cannot store.
+`DateNegativeInfinity`, `DatePositiveInfinity`, `TimestampNegativeInfinity`, and `TimestampPositiveInfinity` map the native temporal infinities. The finite domain checks reject scalar values the target cannot store.
 
 IPv4-mapped IPv6 addresses remain IPv6. IPv6 zones are rejected. `NetworkPrefix` rejects a non-canonical value instead of silently clearing host bits.
 
@@ -57,7 +57,7 @@ For a deterministic locale collation, encode two ascending nested components:
 (collation_key, original_UTF8_bytes)
 ```
 
-The second component is the original source bytes, not normalized text. PostgreSQL uses that bytewise tie-break after the collation provider reports equality. For a nondeterministic collation, omit the source tie-break because collation equality is intentional.
+The second component is the original source bytes, not normalized text. The target uses that bytewise tie-break after the collation provider reports equality. For a nondeterministic collation, omit the source tie-break because collation equality is intentional.
 
 A provider name alone is insufficient schema identity. Record provider, provider version, locale, deterministic flag, strength/options, and the exact key producer. Rebuild keys after any provider-version or option change.
 

@@ -2,7 +2,7 @@
 
 ## Domain
 
-Binary bytes cover SQL `bytea`, opaque identifiers, externally canonicalized documents, and nested Schottky keys. Ordering is unsigned bytewise lexicographic order.
+Binary bytes cover SQL binary values, opaque identifiers, externally canonicalized documents, and nested Schottky keys. Ordering is unsigned bytewise lexicographic order.
 
 ## Encoding
 

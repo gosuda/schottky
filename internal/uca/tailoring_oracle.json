@@ -10810,8 +10810,6 @@
         "vietnamese": "utf8mb4_uca1400_vietnamese_nopad_as_cs"
       }
     },
-    "oracle_release": "13.0.1-MariaDB-ubu2604",
-    "oracle_version_comment": "mariadb.org binary distribution",
     "unicode_14_allkeys": {
       "sha256": "C38AA26B5AFE8564CAF683120DB2D165F8F67FEC231614F3517B02996AA94804",
       "url": "https://www.unicode.org/Public/UCA/14.0.0/allkeys.txt"

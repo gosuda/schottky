@@ -24,13 +24,13 @@ Complement the complete fixed-width ascending payload.
 
 | SQL domain | Encoding |
 | --- | --- |
-| `smallint`, `smallserial` | `Int16` |
-| `integer`, `serial` | `Int32` |
-| `bigint`, `bigserial` | `Int64` |
+| `smallint` | `Int16` |
+| `integer` | `Int32` |
+| `bigint` | `Int64` |
 | non-negative counters and sequence values | matching `Uint` width |
 | `money` with fixed currency and scale | signed minor units |
 | enum | immutable unsigned rank |
 | object identifier types | declared unsigned identifier width |
-| `pg_lsn` | `Uint64` |
+| log sequence number | `Uint64` |
 
 Enum labels are not encoded directly. Persist a stable rank table; inserting a new label between existing labels requires re-encoding later ranks.
